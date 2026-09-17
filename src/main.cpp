@@ -15,7 +15,7 @@ void setup()
     battery_setup();
     motor_setup();
 
-    bluetooth_init();
+    // bluetooth_init();
 
     // Spin both motors forward
     drive(150, 150);
@@ -41,22 +41,22 @@ void loop()
         battery
     );
 
-    char data[120];
+    // char data[120];
 
-    snprintf(
-        data,
-        sizeof(data),
-        "S %u %u %u E %ld %ld D %.2f V %.2f",
-        reading.front_mm,
-        reading.left_mm,
-        reading.right_mm,
-        left_ticks,
-        right_ticks,
-        GetDistanceTraveled(),
-        battery
-    );
+    // snprintf(
+    //     data,
+    //     sizeof(data),
+    //     "S %u %u %u E %ld %ld D %.2f V %.2f",
+    //     reading.front_mm,
+    //     reading.left_mm,
+    //     reading.right_mm,
+    //     left_ticks,
+    //     right_ticks,
+    //     GetDistanceTraveled(),
+    //     battery
+    // );
 
-    bluetooth_send(data);
+    // bluetooth_send(data);
 
     delay(50);
 }
