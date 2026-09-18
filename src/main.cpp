@@ -3,6 +3,7 @@
 #include "sensor.h"
 #include "encoder.h"
 #include "motor.h"
+#include "udp.h"
 
 void setup()
 {
@@ -11,6 +12,7 @@ void setup()
     sensor_init();
     encoder_setup();
     motor_setup();
+    udp_init();
 
     drive(255, 255);
     while (GetDistanceTraveled() < 200.0f)
@@ -18,6 +20,7 @@ void setup()
         delay(1);
     }
     motor_stop();
+    
 }
 
 void loop()
@@ -36,4 +39,7 @@ void loop()
     );
 
     delay(50);
+
+    udp_send("Hello");
+    delay(1000);
 }

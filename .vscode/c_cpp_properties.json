@@ -10,6 +10,7 @@
             "includePath": [
                 "D:/Praxis/MicroMouse/Code/new_programme/include",
                 "D:/Praxis/MicroMouse/Code/new_programme/src",
+                "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                 "D:/Praxis/MicroMouse/Code/new_programme/.pio/libdeps/esp32doit-devkit-v1/Adafruit_VL53L0X/src",
                 "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                 "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
@@ -240,7 +241,6 @@
                 "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/USB/src",
                 "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/Update/src",
                 "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
-                "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                 "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                 "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
                 ""
@@ -250,6 +250,7 @@
                 "path": [
                     "D:/Praxis/MicroMouse/Code/new_programme/include",
                     "D:/Praxis/MicroMouse/Code/new_programme/src",
+                    "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                     "D:/Praxis/MicroMouse/Code/new_programme/.pio/libdeps/esp32doit-devkit-v1/Adafruit_VL53L0X/src",
                     "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                     "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
@@ -480,7 +481,6 @@
                     "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/USB/src",
                     "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/Update/src",
                     "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
-                    "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                     "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                     "C:/Users/YasiruRF/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
                     ""
