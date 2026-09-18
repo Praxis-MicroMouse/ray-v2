@@ -5,11 +5,11 @@
 
 #define PI 3.14159265358979323846
 
-#define LEFT_ENC_A 1
-#define LEFT_ENC_B 3
+#define LEFT_ENC_A 17
+#define LEFT_ENC_B 4
 
-#define RIGHT_ENC_A 19
-#define RIGHT_ENC_B 5
+#define RIGHT_ENC_A 23
+#define RIGHT_ENC_B 16
 
 #define TICKS_PER_REV 715
 
