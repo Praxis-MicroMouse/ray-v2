@@ -14,7 +14,7 @@ static int16_t read16(uint8_t reg)
 {
     Wire.beginTransmission(IMU_ADDR);
     Wire.write(reg);
-    Wire.endTransmission(false);
+    Wire.endTransmission();
 
     Wire.requestFrom(IMU_ADDR, (uint8_t)2);
 
@@ -23,8 +23,7 @@ static int16_t read16(uint8_t reg)
 
 bool imu_init(void)
 {
-    Wire.begin(IMU_SDA, IMU_SCL, 400000);
-
+    // Wire is already brought up by sensor_init(), which must run first.
     Wire.beginTransmission(IMU_ADDR);
     if (Wire.endTransmission() != 0)
         return false;

@@ -21,7 +21,7 @@ bool sensor_init(void)
 {
     pinMode(SENSOR_I2C_SDA, INPUT_PULLUP);
     pinMode(SENSOR_I2C_SCL, INPUT_PULLUP);
-    Wire.begin(SENSOR_I2C_SDA, SENSOR_I2C_SCL, 400000);
+    Wire.begin(SENSOR_I2C_SDA, SENSOR_I2C_SCL);
 
     for (int i = 0; i < SENSOR_COUNT; i++)
     {

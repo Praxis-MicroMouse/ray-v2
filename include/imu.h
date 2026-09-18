@@ -4,10 +4,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// MPU6050 shares the same physical I2C bus as the ToF sensors.
 #define IMU_SDA 21
 #define IMU_SCL 22
 
-#define IMU_ADDR 0x68
+#define IMU_ADDR ((uint8_t)0x68)
 
 typedef struct
 {
