@@ -43,5 +43,11 @@ void drive(int left, int right)
 
 void motor_stop()
 {
-    drive(0, 0);
+    digitalWrite(AIN1, HIGH);
+    digitalWrite(AIN2, HIGH);
+    analogWrite(PWMA, 0);
+
+    digitalWrite(BIN1, HIGH);
+    digitalWrite(BIN2, HIGH);
+    analogWrite(PWMB, 0);
 }

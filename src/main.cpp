@@ -2,6 +2,7 @@
 
 #include "sensor.h"
 #include "encoder.h"
+#include "motor.h"
 
 void setup()
 {
@@ -9,6 +10,14 @@ void setup()
 
     sensor_init();
     encoder_setup();
+    motor_setup();
+
+    drive(255, 255);
+    while (GetDistanceTraveled() < 200.0f)
+    {
+        delay(1);
+    }
+    motor_stop();
 }
 
 void loop()
