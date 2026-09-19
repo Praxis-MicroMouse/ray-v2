@@ -5,14 +5,14 @@
 
 // TB6612FNG pins
 #define AIN1 25
-#define AIN2 26
-#define PWMA 27
+#define AIN2 33
+#define PWMA 32
 
-#define BIN1 32
-#define BIN2 33
-#define PWMB 14
+#define BIN1 14
+#define BIN2 27
+#define PWMB 12
 
-#define STBY 13
+#define STBY 26
 
 void motor_setup();
 void motor_left(int speed);

@@ -8,8 +8,8 @@
 #define LEFT_ENC_A 23
 #define LEFT_ENC_B 17
 
-#define RIGHT_ENC_A 16
-#define RIGHT_ENC_B 4
+#define RIGHT_ENC_A 4
+#define RIGHT_ENC_B 16
 
 #define TICKS_PER_REV 715
 
