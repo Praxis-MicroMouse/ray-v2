@@ -1,0 +1,803 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Ray-V2 Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#020609;
+    --bg-2:#050e14;
+    --panel:rgba(3,15,21,0.82);
+    --panel-solid:#050f15;
+    --border:rgba(57,217,255,0.20);
+    --border-bright:rgba(57,217,255,0.55);
+    --accent:#39D9FF;
+    --accent-bright:#7DEAFF;
+    --accent-mid:#1FA0C2;
+    --accent-dim:#0E5A70;
+    --accent-wash:rgba(57,217,255,0.08);
+    --ink-0:#EAFBFF;
+    --ink-1:#CFEFFA;
+    --ink-2:#82A2AF;
+    --ink-3:#465A63;
+    --good:#35D88F;
+    --warn:#F2B33D;
+    --crit:#FF5C6C;
+    --radius:2px;
+    --gap:14px;
+    font-size:15px;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--ink-1);
+    font-family:"JetBrains Mono","SFMono-Regular",ui-monospace,Menlo,monospace;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  h1,h2,h3,.display{font-family:"Space Grotesk","Segoe UI",ui-sans-serif,system-ui,sans-serif;}
+
+  /* ---------- atmosphere ---------- */
+  body::before{
+    content:"";
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(ellipse 900px 500px at 18% -10%, rgba(57,217,255,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(20,90,120,0.10), transparent 55%),
+      repeating-linear-gradient(0deg, rgba(57,217,255,0.035) 0px, rgba(57,217,255,0.035) 1px, transparent 1px, transparent 40px),
+      repeating-linear-gradient(90deg, rgba(57,217,255,0.035) 0px, rgba(57,217,255,0.035) 1px, transparent 1px, transparent 40px);
+  }
+  .scanline{
+    position:fixed; left:0; right:0; height:140px; z-index:1; pointer-events:none;
+    background:linear-gradient(180deg, transparent, rgba(57,217,255,0.05), transparent);
+    animation:scan 14s linear infinite;
+  }
+  @keyframes scan{
+    0%{ top:-140px; }
+    100%{ top:100vh; }
+  }
+  @media (prefers-reduced-motion:reduce){ .scanline{ display:none; } }
+
+  a{color:inherit;}
+
+  /* ---------- topbar ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; gap:20px;
+    padding:12px 24px;
+    background:rgba(2,7,10,0.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  .topbar__brand{display:flex; align-items:center; gap:10px; margin-right:auto;}
+  .topbar__mark{
+    width:26px; height:26px; border:1px solid var(--border-bright); border-radius:50%;
+    display:grid; place-items:center; position:relative; flex:none;
+  }
+  .topbar__mark::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px 1px var(--accent); animation:corepulse 2.4s ease-in-out infinite; }
+  .topbar__name{font-family:"Space Grotesk"; font-weight:600; font-size:15px; letter-spacing:0.02em; color:var(--ink-0);}
+  .topbar__sub{font-size:10.5px; color:var(--ink-3); letter-spacing:0.08em;}
+  .topbar__stats{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+  .stat{display:flex; flex-direction:column; gap:2px; align-items:flex-end;}
+  .stat span:first-child{font-size:9.5px; color:var(--ink-3); letter-spacing:0.1em;}
+  .stat span:last-child{font-size:12px; color:var(--ink-1); font-variant-numeric:tabular-nums;}
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid var(--border-bright); padding:4px 10px; border-radius:999px;
+    font-size:10.5px; letter-spacing:0.06em; color:var(--accent-bright);
+    background:var(--accent-wash);
+  }
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--good); flex:none;}
+  .dot.warn{background:var(--warn);}
+  .dot.crit{background:var(--crit);}
+  .dot.live{animation:dotpulse 2.2s ease-in-out infinite;}
+  @keyframes dotpulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+  @keyframes corepulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+  @media (prefers-reduced-motion:reduce){ .dot.live, .topbar__mark::before{ animation:none; } }
+
+  /* ---------- shell / grid ---------- */
+  .console{
+    position:relative; z-index:2;
+    max-width:1440px; margin:0 auto;
+    padding:20px 24px 48px;
+    display:grid;
+    grid-template-columns:296px 1fr 320px;
+    grid-template-areas:"core center feed" "strip strip strip";
+    gap:var(--gap);
+  }
+  .rail{display:flex; flex-direction:column; gap:var(--gap); min-width:0;}
+  .center-col{display:flex; flex-direction:column; gap:var(--gap); min-width:0;}
+  .rail-left{grid-area:core;}
+  .rail-right{grid-area:feed;}
+  .center-col{grid-area:center;}
+
+  /* ---------- panel ---------- */
+  .panel{
+    position:relative;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:inset 0 0 24px rgba(57,217,255,0.03);
+    padding:14px 16px 16px;
+    transition:border-color .25s ease, box-shadow .25s ease;
+  }
+  .panel:hover{
+    border-color:var(--border-bright);
+    box-shadow:inset 0 0 24px rgba(57,217,255,0.06), 0 0 18px rgba(57,217,255,0.05);
+  }
+  .corner{position:absolute; width:9px; height:9px; pointer-events:none; opacity:0.85;}
+  .corner.tl{top:-1px; left:-1px; border-top:1px solid var(--accent); border-left:1px solid var(--accent);}
+  .corner.tr{top:-1px; right:-1px; border-top:1px solid var(--accent); border-right:1px solid var(--accent);}
+  .corner.bl{bottom:-1px; left:-1px; border-bottom:1px solid var(--accent); border-left:1px solid var(--accent);}
+  .corner.br{bottom:-1px; right:-1px; border-bottom:1px solid var(--accent); border-right:1px solid var(--accent);}
+
+  .panel__head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:8px;}
+  .panel__title{font-size:11px; letter-spacing:0.12em; color:var(--ink-2); font-weight:600;}
+  .panel__title b{color:var(--accent-bright); font-weight:600;}
+  .panel__meta{font-size:9.5px; color:var(--ink-3); letter-spacing:0.06em;}
+
+  /* ---------- core visualization ---------- */
+  .core{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .core-ring-wrap{position:relative; width:180px; height:180px;}
+  .core-ring-wrap svg{position:absolute; inset:0; overflow:visible;}
+  .ring-outer{animation:spin 22s linear infinite;}
+  .ring-mid{animation:spinrev 16s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @keyframes spinrev{to{transform:rotate(-360deg);}}
+  @media (prefers-reduced-motion:reduce){ .ring-outer,.ring-mid{ animation:none; } }
+  .core-readout{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .core-readout .num{font-family:"Space Grotesk"; font-size:26px; font-weight:600; color:var(--ink-0); font-variant-numeric:tabular-nums; line-height:1;}
+  .core-readout .lbl{font-size:9px; color:var(--ink-3); letter-spacing:0.14em; margin-top:4px;}
+  .core-stats{width:100%; display:flex; flex-direction:column; gap:6px; margin-top:2px;}
+  .kv-row{display:flex; align-items:baseline; justify-content:space-between; font-size:11px;}
+  .kv-row .k{color:var(--ink-2); letter-spacing:0.04em;}
+  .kv-row .v{color:var(--ink-0); font-variant-numeric:tabular-nums;}
+
+  /* ---------- health meters ---------- */
+  .meter{margin-bottom:10px;}
+  .meter:last-child{margin-bottom:0;}
+  .meter__top{display:flex; justify-content:space-between; font-size:10.5px; color:var(--ink-2); margin-bottom:5px; letter-spacing:0.03em;}
+  .meter__top .v{color:var(--ink-0); font-variant-numeric:tabular-nums;}
+  .meter__track{height:5px; background:rgba(57,217,255,0.08); border:1px solid var(--border); border-radius:1px; overflow:hidden;}
+  .meter__fill{height:100%; background:linear-gradient(90deg, var(--accent-dim), var(--accent)); box-shadow:0 0 6px rgba(57,217,255,0.4);}
+
+  .buildline{display:flex; align-items:center; gap:8px; font-size:10.5px; color:var(--ink-2); margin-top:12px; padding-top:12px; border-top:1px solid var(--border);}
+  .buildline b{color:var(--good); font-weight:600;}
+
+  /* ---------- gauges ---------- */
+  .gauge-row{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .gauge{display:flex; flex-direction:column; align-items:center; gap:6px;}
+  .gauge svg{width:100%; height:auto; max-width:132px;}
+  .gauge__label{font-size:10px; letter-spacing:0.1em; color:var(--ink-2);}
+  .gauge__value{font-family:"Space Grotesk"; font-size:20px; font-weight:600; color:var(--ink-0); font-variant-numeric:tabular-nums;}
+  .gauge__unit{font-size:10px; color:var(--ink-3);}
+  .gauge__cal{font-size:9px; color:var(--ink-3); text-align:center;}
+
+  /* ---------- chart ---------- */
+  .legend{display:flex; flex-wrap:wrap; gap:14px; margin-bottom:8px;}
+  .legend-item{display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--ink-2); letter-spacing:0.03em;}
+  .swatch{width:14px; height:2px; flex:none;}
+  .swatch.front{background:var(--accent-bright);}
+  .swatch.right{background:var(--accent-mid); border-top:2px dashed var(--accent-mid); background:none; height:0;}
+  .swatch.left{background:none; border-top:2px dotted var(--accent-dim); height:0;}
+  .chart-wrap{position:relative;}
+  canvas{display:block; width:100%; height:190px;}
+  .chart-tt{
+    position:absolute; pointer-events:none; z-index:5; display:none;
+    background:rgba(2,10,14,0.92); border:1px solid var(--border-bright);
+    padding:6px 9px; font-size:10.5px; color:var(--ink-1); white-space:nowrap; border-radius:1px;
+  }
+  .chart-tt b{color:var(--accent-bright);}
+  .chart-foot{display:flex; justify-content:space-between; margin-top:6px;}
+  .btn-ghost{
+    background:none; border:1px solid var(--border); color:var(--ink-2); font-family:inherit;
+    font-size:9.5px; letter-spacing:0.08em; padding:4px 9px; cursor:pointer; border-radius:1px;
+  }
+  .btn-ghost:hover{border-color:var(--border-bright); color:var(--accent-bright);}
+  .btn-ghost:focus-visible, a:focus-visible, button:focus-visible{outline:1px solid var(--accent-bright); outline-offset:2px;}
+  .datatable{width:100%; border-collapse:collapse; margin-top:10px; font-size:10.5px;}
+  .datatable caption{text-align:left; color:var(--ink-3); font-size:9.5px; margin-bottom:5px;}
+  .datatable th, .datatable td{padding:4px 8px; text-align:right; border-bottom:1px solid var(--border); color:var(--ink-2); font-variant-numeric:tabular-nums;}
+  .datatable th:first-child, .datatable td:first-child{text-align:left; color:var(--ink-2);}
+  .datatable th{color:var(--ink-3); font-weight:500;}
+  .table-scroll{overflow-x:auto;}
+
+  /* ---------- drive output ---------- */
+  .drive-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:end;}
+  .bars{display:flex; align-items:flex-end; gap:18px; height:110px; padding-top:18px; position:relative;}
+  .bar-col{display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; height:100%; justify-content:flex-end;}
+  .bar-col .bv{font-size:11px; color:var(--ink-0); font-variant-numeric:tabular-nums;}
+  .bar{width:34px; border-radius:2px 2px 0 0; background:linear-gradient(180deg, var(--accent-bright), var(--accent-dim)); transition:height .35s cubic-bezier(.16,1,.3,1); box-shadow:0 0 10px rgba(57,217,255,0.25);}
+  .bar-col .bl{font-size:9.5px; color:var(--ink-3); letter-spacing:0.08em;}
+  .move-state{display:flex; flex-direction:column; gap:8px;}
+  .badge{display:inline-flex; align-self:flex-start; align-items:center; gap:6px; border:1px solid var(--border-bright); background:var(--accent-wash); color:var(--accent-bright); font-size:10.5px; letter-spacing:0.08em; padding:4px 10px; border-radius:999px;}
+  .badge.idle{border-color:var(--border); background:none; color:var(--ink-3);}
+
+  /* ---------- feed ---------- */
+  .feed{max-height:260px; overflow-y:auto; display:flex; flex-direction:column-reverse; gap:2px;}
+  .feed-item{display:flex; gap:8px; font-size:10.5px; padding:5px 0; border-bottom:1px solid rgba(57,217,255,0.08); line-height:1.4;}
+  .feed-item .t{color:var(--ink-3); flex:none; font-variant-numeric:tabular-nums;}
+  .feed-item .m{color:var(--ink-1);}
+  .feed-item.warn .m{color:var(--warn);}
+  .feed-item.crit .m{color:var(--crit);}
+  .feed-item.good .m{color:var(--good);}
+
+  /* ---------- status rows ---------- */
+  .status-row{display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);}
+  .status-row:last-child{border-bottom:none;}
+  .status-row__label{display:flex; flex-direction:column; gap:2px;}
+  .status-row__label .l1{font-size:11px; color:var(--ink-1);}
+  .status-row__label .l2{font-size:9px; color:var(--ink-3); letter-spacing:0.05em;}
+  .status-row__val{display:flex; align-items:center; gap:7px; font-size:10px; color:var(--ink-2); letter-spacing:0.06em;}
+
+  /* ---------- perf strip ---------- */
+  .strip{grid-area:strip;}
+  .perf-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;}
+  .perf-tile{background:var(--panel-solid); padding:12px 14px;}
+  .perf-tile .l{font-size:9.5px; color:var(--ink-3); letter-spacing:0.09em; margin-bottom:6px;}
+  .perf-tile .v{font-family:"Space Grotesk"; font-size:16px; color:var(--ink-0); font-variant-numeric:tabular-nums;}
+  .perf-tile .u{font-size:10px; color:var(--ink-3); margin-left:3px;}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:1099px){
+    .console{grid-template-columns:1fr 1fr; grid-template-areas:"core feed" "center center" "strip strip";}
+    .perf-grid{grid-template-columns:repeat(3,1fr);}
+  }
+  @media (max-width:767px){
+    .topbar{flex-wrap:wrap; row-gap:8px;}
+    .topbar__stats{gap:12px;}
+    .console{grid-template-columns:1fr; grid-template-areas:"core" "center" "feed" "strip"; padding:16px 16px 40px;}
+    .gauge-row{grid-template-columns:repeat(3,1fr); gap:6px;}
+    .drive-grid{grid-template-columns:1fr;}
+    .perf-grid{grid-template-columns:repeat(2,1fr);}
+    :root{font-size:14px;}
+  }
+</style>
+
+<div class="scanline" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="topbar__brand">
+    <div class="topbar__mark" aria-hidden="true"></div>
+    <div>
+      <div class="topbar__name">RAY&#8209;V2 CONSOLE</div>
+      <div class="topbar__sub">MICROMOUSE TELEMETRY / ESP32&#8209;DOIT&#8209;DEVKIT&#8209;V1</div>
+    </div>
+  </div>
+  <div class="topbar__stats">
+    <span class="pill"><span class="dot live" id="link-dot"></span><span id="link-label">SERIAL COM8 &middot; 115200</span></span>
+    <div class="stat"><span>UPTIME</span><span id="uptime">00:00:00</span></div>
+    <div class="stat"><span>LOCAL TIME</span><span id="clock">--:--:--</span></div>
+  </div>
+</header>
+
+<main class="console">
+
+  <!-- LEFT RAIL -->
+  <div class="rail rail-left">
+    <section class="panel core" aria-labelledby="core-title">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="panel__head">
+        <span class="panel__title" id="core-title">CONTROL <b>CORE</b></span>
+        <span class="panel__meta">1kHz TICK</span>
+      </div>
+      <div class="core-ring-wrap">
+        <svg viewBox="0 0 180 180">
+          <g transform="translate(90,90)">
+            <circle r="86" fill="none" stroke="rgba(57,217,255,0.10)" stroke-width="1"/>
+            <g class="ring-outer">
+              <circle r="78" fill="none" stroke="rgba(57,217,255,0.35)" stroke-width="1" stroke-dasharray="2 7"/>
+            </g>
+            <g class="ring-mid">
+              <circle r="62" fill="none" stroke="rgba(125,234,255,0.5)" stroke-width="1.4" stroke-dasharray="70 320" stroke-linecap="round"/>
+            </g>
+            <circle r="48" fill="none" stroke="rgba(57,217,255,0.18)" stroke-width="1"/>
+            <circle id="loop-arc" r="48" fill="none" stroke="#7DEAFF" stroke-width="3" stroke-linecap="round"
+                    stroke-dasharray="301.6" stroke-dashoffset="301.6" transform="rotate(-90)"/>
+          </g>
+        </svg>
+        <div class="core-readout">
+          <span class="num" id="loop-hz">1000</span>
+          <span class="lbl">HZ TARGET</span>
+        </div>
+      </div>
+      <div class="core-stats">
+        <div class="kv-row"><span class="k">Loop budget used</span><span class="v" id="loop-pct">0%</span></div>
+        <div class="kv-row"><span class="k">Max loop time</span><span class="v" id="loop-us">&#8212; &micro;s</span></div>
+        <div class="kv-row"><span class="k">DriveControl::update()</span><span class="v" id="loop-state">IDLE</span></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="health-title">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="panel__head">
+        <span class="panel__title" id="health-title">SYSTEM <b>HEALTH</b></span>
+      </div>
+      <div class="meter">
+        <div class="meter__top"><span>Flash usage</span><span class="v">29.9%</span></div>
+        <div class="meter__track"><div class="meter__fill" style="width:29.9%"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter__top"><span>RAM usage</span><span class="v">8.6%</span></div>
+        <div class="meter__track"><div class="meter__fill" style="width:8.6%"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter__top"><span>I&sup2;C bus load (400kHz)</span><span class="v" id="i2c-load">&#8212;%</span></div>
+        <div class="meter__track"><div class="meter__fill" id="i2c-fill" style="width:0%"></div></div>
+      </div>
+      <div class="buildline"><b>&#9679;</b> env:esp32doit&#8209;devkit&#8209;v1 &#8212; build <b>SUCCESS</b></div>
+    </section>
+  </div>
+
+  <!-- CENTER COLUMN -->
+  <div class="center-col">
+    <section class="panel" aria-labelledby="range-title">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="panel__head">
+        <span class="panel__title" id="range-title">RANGE <b>TELEMETRY</b></span>
+        <span class="panel__meta">3&times; VL53L0X &middot; I&sup2;C 0x29&#8209;0x2B</span>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge">
+          <svg viewBox="0 0 130 130">
+            <g transform="translate(65,65) rotate(-90)">
+              <circle r="54" fill="none" stroke="rgba(57,217,255,0.12)" stroke-width="8"/>
+              <circle id="g-front" r="54" fill="none" stroke="#7DEAFF" stroke-width="8" stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="339.3"/>
+            </g>
+          </svg>
+          <span class="gauge__label">FRONT</span>
+          <span class="gauge__value"><span id="v-front">&#8212;</span><span class="gauge__unit">mm</span></span>
+          <span class="gauge__cal">obstacle &le;30 / clear &ge;40</span>
+        </div>
+        <div class="gauge">
+          <svg viewBox="0 0 130 130">
+            <g transform="translate(65,65) rotate(-90)">
+              <circle r="54" fill="none" stroke="rgba(57,217,255,0.12)" stroke-width="8"/>
+              <circle id="g-right" r="54" fill="none" stroke="#39D9FF" stroke-width="8" stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="339.3"/>
+            </g>
+          </svg>
+          <span class="gauge__label">RIGHT</span>
+          <span class="gauge__value"><span id="v-right">&#8212;</span><span class="gauge__unit">mm</span></span>
+          <span class="gauge__cal">cal a=0.969 b=&minus;13.6</span>
+        </div>
+        <div class="gauge">
+          <svg viewBox="0 0 130 130">
+            <g transform="translate(65,65) rotate(-90)">
+              <circle r="54" fill="none" stroke="rgba(57,217,255,0.12)" stroke-width="8"/>
+              <circle id="g-left" r="54" fill="none" stroke="#1FA0C2" stroke-width="8" stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="339.3"/>
+            </g>
+          </svg>
+          <span class="gauge__label">LEFT</span>
+          <span class="gauge__value"><span id="v-left">&#8212;</span><span class="gauge__unit">mm</span></span>
+          <span class="gauge__cal">cal a=0.964 b=&minus;10.6</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="dist-title">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="panel__head">
+        <span class="panel__title" id="dist-title">DISTANCE <b>/ TIME</b></span>
+        <span class="panel__meta">last 24s &middot; 200ms poll</span>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="swatch front"></span>FRONT</span>
+        <span class="legend-item"><span class="swatch right"></span>RIGHT</span>
+        <span class="legend-item"><span class="swatch left"></span>LEFT</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart" role="img" aria-label="Live line chart of front, right and left sensor distance in millimeters over the last 24 seconds"></canvas>
+        <div class="chart-tt" id="chart-tt"></div>
+      </div>
+      <div class="chart-foot">
+        <span class="panel__meta">SENSOR_MAX_RANGE_MM = 2000</span>
+        <button class="btn-ghost" id="toggle-table" aria-expanded="false" aria-controls="range-table-wrap">TABLE VIEW</button>
+      </div>
+      <div class="table-scroll" id="range-table-wrap" hidden>
+        <table class="datatable">
+          <caption>Most recent range samples, newest first</caption>
+          <thead><tr><th>t (s ago)</th><th>Front mm</th><th>Right mm</th><th>Left mm</th></tr></thead>
+          <tbody id="range-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="drive-title">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="panel__head">
+        <span class="panel__title" id="drive-title">DRIVE <b>OUTPUT</b></span>
+        <span class="panel__meta">TB6612FNG &middot; 20kHz / 10&#8209;bit PWM</span>
+      </div>
+      <div class="drive-grid">
+        <div class="bars" role="img" aria-label="Bar chart comparing left and right wheel PWM duty cycle">
+          <div class="bar-col"><span class="bv" id="bv-l">0</span><div class="bar" id="bar-l" style="height:2%"></div><span class="bl">LEFT</span></div>
+          <div class="bar-col"><span class="bv" id="bv-r">0</span><div class="bar" id="bar-r" style="height:2%"></div><span class="bl">RIGHT</span></div>
+        </div>
+        <div class="move-state">
+          <span class="badge idle" id="move-badge">IDLE</span>
+          <div class="kv-row"><span class="k">countL</span><span class="v" id="cnt-l">0</span></div>
+          <div class="kv-row"><span class="k">countR</span><span class="v" id="cnt-r">0</span></div>
+          <div class="kv-row"><span class="k">L&minus;R diff</span><span class="v" id="cnt-diff">0</span></div>
+          <div class="kv-row"><span class="k">sync gain k</span><span class="v">0.050</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- RIGHT RAIL -->
+  <div class="rail rail-right">
+    <section class="panel" aria-labelledby="feed-title">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="panel__head">
+        <span class="panel__title" id="feed-title">EVENT <b>LOG</b></span>
+        <span class="panel__meta">Serial @115200</span>
+      </div>
+      <div class="feed" id="feed" aria-live="polite"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="link-title">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="panel__head">
+        <span class="panel__title" id="link-title">LINK <b>STATUS</b></span>
+      </div>
+      <div class="status-row">
+        <div class="status-row__label"><span class="l1">I&sup2;C bus</span><span class="l2">SDA 21 &middot; SCL 22 &middot; 400kHz</span></div>
+        <div class="status-row__val"><span class="dot"></span>OK</div>
+      </div>
+      <div class="status-row">
+        <div class="status-row__label"><span class="l1">Serial link</span><span class="l2">COM8 &middot; 115200 baud</span></div>
+        <div class="status-row__val"><span class="dot live"></span>OK</div>
+      </div>
+      <div class="status-row">
+        <div class="status-row__label"><span class="l1">WLAN uplink</span><span class="l2">UDP :5000</span></div>
+        <div class="status-row__val" id="udp-status"><span class="dot live" id="udp-dot"></span><span id="udp-text">OK</span></div>
+      </div>
+      <div class="status-row">
+        <div class="status-row__label"><span class="l1">Encoder ISR</span><span class="l2">4 ch &middot; CHANGE edge</span></div>
+        <div class="status-row__val"><span class="dot"></span>ATTACHED</div>
+      </div>
+      <div class="status-row">
+        <div class="status-row__label"><span class="l1">IMU</span><span class="l2">MPU6050 &middot; addr 0x68</span></div>
+        <div class="status-row__val"><span class="dot"></span>OK</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- PERF STRIP -->
+  <section class="panel strip" aria-labelledby="perf-title">
+    <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+    <div class="panel__head">
+      <span class="panel__title" id="perf-title">FIRMWARE <b>CONFIGURATION</b></span>
+      <span class="panel__meta">ray&#8209;v2 &middot; static build constants</span>
+    </div>
+    <div class="perf-grid">
+      <div class="perf-tile"><div class="l">STRAIGHT PD (L)</div><div class="v">4.583<span class="u">/ 0.458</span></div></div>
+      <div class="perf-tile"><div class="l">STRAIGHT PD (R)</div><div class="v">4.554<span class="u">/ 0.456</span></div></div>
+      <div class="perf-tile"><div class="l">TRACK WIDTH</div><div class="v">85<span class="u">mm</span></div></div>
+      <div class="perf-tile"><div class="l">WHEEL DIA</div><div class="v">32<span class="u">mm</span></div></div>
+      <div class="perf-tile"><div class="l">TICKS / REV</div><div class="v">1426</div></div>
+      <div class="perf-tile"><div class="l">IMU RANGE</div><div class="v">&plusmn;2g<span class="u">/ &plusmn;250&deg;/s</span></div></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- clock / uptime ---------- */
+  var bootTime = Date.now();
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function tickClock(){
+    var now = new Date();
+    document.getElementById("clock").textContent = pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());
+    var up = Math.floor((Date.now()-bootTime)/1000);
+    var h = Math.floor(up/3600), m = Math.floor((up%3600)/60), s = up%60;
+    document.getElementById("uptime").textContent = pad(h)+":"+pad(m)+":"+pad(s);
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  /* ---------- feed ---------- */
+  var feedEl = document.getElementById("feed");
+  var feedCount = 0;
+  function tRel(){
+    var s = Math.floor((Date.now()-bootTime)/1000);
+    return "+"+pad(Math.floor(s/60))+":"+pad(s%60);
+  }
+  function log(msg, cls){
+    var row = document.createElement("div");
+    row.className = "feed-item"+(cls?(" "+cls):"");
+    var t = document.createElement("span"); t.className="t"; t.textContent = tRel();
+    var m = document.createElement("span"); m.className="m"; m.textContent = msg;
+    row.appendChild(t); row.appendChild(m);
+    feedEl.appendChild(row);
+    feedCount++;
+    if(feedCount > 60){ feedEl.removeChild(feedEl.firstChild); }
+  }
+  log("[SENSOR] All sensors ready. Calibrated readings in millimeters; motors are idle.", "good");
+  log("[IMU] MPU6050 detected at 0x68, WHO_AM_I ok.", "good");
+  log("[WIFI] UDP telemetry link established, port 5000.", "good");
+
+  /* ---------- simulated telemetry model ---------- */
+  // Mirrors sensor.cpp's exponential smoothing (7:1) and sensor_control.cpp's
+  // 2-sample hysteresis latch so the demo behaves like the real firmware.
+  var MAX_RANGE = 2000;
+  var dist = { front: 620, right: 480, left: 510 };
+  var filtered = { front: 620, right: 480, left: 510 };
+  var obstacleActive = false, triggerCount = 0, clearCount = 0;
+  var history = []; // {t, front, right, left}
+  var HISTORY_MAX = 120; // 24s at 200ms
+
+  var move = { active:false, t:0, dur:0, distTarget:0, speedTarget:0, countL:0, countR:0, pwmL:0, pwmR:0 };
+  var loopMaxUs = 62;
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function rand(a,b){ return a + Math.random()*(b-a); }
+
+  function stepSensors(){
+    // slow wander + occasional approach event on front sensor
+    dist.front = clamp(dist.front + rand(-40,40), 25, MAX_RANGE);
+    dist.right = clamp(dist.right + rand(-18,18), 60, MAX_RANGE);
+    dist.left  = clamp(dist.left  + rand(-18,18), 60, MAX_RANGE);
+
+    filtered.front = (filtered.front*7 + Math.min(dist.front,MAX_RANGE))/8;
+    filtered.right = (filtered.right*7 + Math.min(dist.right,MAX_RANGE))/8;
+    filtered.left  = (filtered.left*7  + Math.min(dist.left,MAX_RANGE))/8;
+
+    var sample = Math.min(filtered.front, MAX_RANGE);
+    if(!obstacleActive){
+      if(sample <= 30){ triggerCount++; if(triggerCount>=2){ obstacleActive=true; triggerCount=0; log("Obstacle detected ahead, front <=30mm.","warn"); } }
+      else { triggerCount = 0; }
+    } else {
+      if(sample >= 40){ clearCount++; if(clearCount>=2){ obstacleActive=false; clearCount=0; log("Obstacle cleared, front >=40mm.","good"); } }
+      else { clearCount = 0; }
+    }
+
+    history.push({ front:filtered.front, right:filtered.right, left:filtered.left });
+    if(history.length > HISTORY_MAX) history.shift();
+  }
+
+  function maybeStartMove(){
+    if(move.active) return;
+    if(Math.random() < 0.10){
+      move.active = true; move.t = 0;
+      move.distTarget = Math.round(rand(150,500));
+      move.speedTarget = Math.round(rand(180,320));
+      move.dur = (move.distTarget/move.speedTarget) + 0.6;
+      move.countL = 0; move.countR = 0;
+      log("Move started: dist="+move.distTarget+"mm speed="+move.speedTarget+"mm/s tTotal="+move.dur.toFixed(2)+"s", "");
+    }
+  }
+  function stepMove(dt){
+    if(!move.active){
+      move.pwmL = clamp(move.pwmL*0.85, 0, 1024);
+      move.pwmR = clamp(move.pwmR*0.85, 0, 1024);
+      return;
+    }
+    move.t += dt;
+    var frac = clamp(move.t/move.dur, 0, 1);
+    var targetPwm = 620 + 260*Math.sin(Math.min(frac,1)*Math.PI);
+    move.pwmL = clamp(targetPwm + rand(-14,14), 0, 1024);
+    move.pwmR = clamp(targetPwm + rand(-14,14), 0, 1024);
+    move.countL += Math.round(move.pwmL/1024 * 46);
+    move.countR += Math.round(move.pwmR/1024 * 45.7);
+    if(frac >= 1){
+      move.active = false;
+      log("Stopped. Final countL="+move.countL+" countR="+move.countR+" diff="+(move.countL-move.countR)+" ticks.", "good");
+    }
+  }
+
+  function stepLoop(){
+    loopMaxUs = clamp(loopMaxUs + rand(-6,6), 38, 210);
+    var pct = clamp(loopMaxUs/1000*100, 0, 100);
+    document.getElementById("loop-us").textContent = loopMaxUs.toFixed(0)+" µs";
+    document.getElementById("loop-pct").textContent = pct.toFixed(1)+"%";
+    document.getElementById("loop-state").textContent = move.active ? "RUNNING" : "IDLE";
+    var arc = document.getElementById("loop-arc");
+    var C = 301.59;
+    arc.setAttribute("stroke-dashoffset", (C - (pct/100)*C).toFixed(1));
+    arc.setAttribute("stroke", pct>70? "#FF5C6C" : (pct>40? "#F2B33D" : "#7DEAFF"));
+  }
+
+  /* ---------- gauges ---------- */
+  var GC = 339.3;
+  function setGauge(id, valEl, value){
+    var frac = clamp(value/MAX_RANGE, 0, 1);
+    document.getElementById(id).setAttribute("stroke-dashoffset", (GC - frac*GC).toFixed(1));
+    document.getElementById(valEl).textContent = Math.round(value);
+  }
+
+  /* ---------- chart ---------- */
+  var canvas = document.getElementById("chart");
+  var ctx = canvas.getContext("2d");
+  var tt = document.getElementById("chart-tt");
+  var chartRect = { w:0, h:0 };
+
+  function resizeCanvas(){
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+    canvas.width = Math.round(rect.width*dpr);
+    canvas.height = Math.round(rect.height*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    chartRect = { w:rect.width, h:rect.height };
+  }
+  window.addEventListener("resize", resizeCanvas);
+
+  function drawChart(){
+    var w = chartRect.w, h = chartRect.h;
+    if(w<=0||h<=0) return;
+    ctx.clearRect(0,0,w,h);
+    var padL = 34, padR = 8, padT = 8, padB = 16;
+    var plotW = w - padL - padR, plotH = h - padT - padB;
+    var n = history.length;
+
+    // grid
+    ctx.strokeStyle = "rgba(57,217,255,0.10)";
+    ctx.lineWidth = 1;
+    ctx.font = "9.5px 'JetBrains Mono', monospace";
+    ctx.fillStyle = "#465A63";
+    for(var gy=0; gy<=4; gy++){
+      var yy = padT + plotH*gy/4;
+      ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(w-padR, yy); ctx.stroke();
+      var val = Math.round(MAX_RANGE*(1-gy/4));
+      ctx.fillText(val, 2, yy+3);
+    }
+    if(n<2) return;
+
+    function xAt(i){ return padL + plotW * (i/(HISTORY_MAX-1)); }
+    function yAt(v){ return padT + plotH * (1 - clamp(v/MAX_RANGE,0,1)); }
+
+    // area fill under FRONT
+    ctx.beginPath();
+    for(var i=0;i<n;i++){
+      var x = xAt(HISTORY_MAX-n+i), y = yAt(history[i].front);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.lineTo(xAt(HISTORY_MAX-1), padT+plotH);
+    ctx.lineTo(xAt(HISTORY_MAX-n), padT+plotH);
+    ctx.closePath();
+    var grad = ctx.createLinearGradient(0,padT,0,padT+plotH);
+    grad.addColorStop(0, "rgba(125,234,255,0.20)");
+    grad.addColorStop(1, "rgba(125,234,255,0.0)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    function drawLine(key, color, dash){
+      ctx.beginPath();
+      ctx.setLineDash(dash||[]);
+      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = color;
+      for(var i=0;i<n;i++){
+        var x = xAt(HISTORY_MAX-n+i), y = yAt(history[i][key]);
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    drawLine("left", "#0E5A70", [2,4]);
+    drawLine("right", "#1FA0C2", [6,4]);
+    drawLine("front", "#7DEAFF", []);
+
+    // endpoint markers + direct labels
+    var lastX = xAt(HISTORY_MAX-1);
+    [["front","#7DEAFF"],["right","#1FA0C2"],["left","#0E5A70"]].forEach(function(pair){
+      var y = yAt(history[n-1][pair[0]]);
+      ctx.beginPath(); ctx.arc(lastX, y, 2.6, 0, Math.PI*2); ctx.fillStyle = pair[1]; ctx.fill();
+    });
+  }
+
+  function nearestIndex(px){
+    var padL = 34, padR = 8;
+    var plotW = chartRect.w - padL - padR;
+    var n = history.length;
+    var frac = clamp((px-padL)/plotW, 0, 1);
+    var idx = Math.round(frac*(HISTORY_MAX-1)) - (HISTORY_MAX-n);
+    return clamp(idx, 0, n-1);
+  }
+  canvas.addEventListener("mousemove", function(e){
+    var rect = canvas.getBoundingClientRect();
+    var px = e.clientX - rect.left;
+    var idx = nearestIndex(px);
+    var row = history[idx];
+    if(!row) return;
+    var secAgo = ((history.length-1-idx)*0.2).toFixed(1);
+    tt.style.display = "block";
+    tt.style.left = Math.min(px+12, chartRect.w-150)+"px";
+    tt.style.top = "6px";
+    tt.innerHTML = "T&minus;"+secAgo+"s<br>FRONT <b>"+Math.round(row.front)+"</b>mm<br>RIGHT <b>"+Math.round(row.right)+"</b>mm<br>LEFT <b>"+Math.round(row.left)+"</b>mm";
+  });
+  canvas.addEventListener("mouseleave", function(){ tt.style.display = "none"; });
+
+  var tableBtn = document.getElementById("toggle-table");
+  var tableWrap = document.getElementById("range-table-wrap");
+  tableBtn.addEventListener("click", function(){
+    var open = tableWrap.hidden;
+    tableWrap.hidden = !open;
+    tableBtn.setAttribute("aria-expanded", String(open));
+    tableBtn.textContent = open ? "HIDE TABLE" : "TABLE VIEW";
+    if(open) fillTable();
+  });
+  function fillTable(){
+    var body = document.getElementById("range-table-body");
+    body.innerHTML = "";
+    var n = history.length;
+    for(var i=n-1; i>=Math.max(0,n-8); i--){
+      var row = history[i];
+      var secAgo = ((n-1-i)*0.2).toFixed(1);
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td>"+secAgo+"</td><td>"+Math.round(row.front)+"</td><td>"+Math.round(row.right)+"</td><td>"+Math.round(row.left)+"</td>";
+      body.appendChild(tr);
+    }
+  }
+
+  /* ---------- drive output UI ---------- */
+  function drawDrive(){
+    document.getElementById("bar-l").style.height = clamp(move.pwmL/1024*100,2,100)+"%";
+    document.getElementById("bar-r").style.height = clamp(move.pwmR/1024*100,2,100)+"%";
+    document.getElementById("bv-l").textContent = Math.round(move.pwmL);
+    document.getElementById("bv-r").textContent = Math.round(move.pwmR);
+    document.getElementById("cnt-l").textContent = move.countL;
+    document.getElementById("cnt-r").textContent = move.countR;
+    document.getElementById("cnt-diff").textContent = (move.countL-move.countR);
+    var badge = document.getElementById("move-badge");
+    if(move.active){ badge.textContent="STRAIGHT MOVE"; badge.classList.remove("idle"); }
+    else { badge.textContent="IDLE"; badge.classList.add("idle"); }
+  }
+
+  /* ---------- udp flicker ---------- */
+  function stepUdp(){
+    var dot = document.getElementById("udp-dot"), txt = document.getElementById("udp-text");
+    if(Math.random() < 0.03){
+      dot.className = "dot warn"; txt.textContent = "RETRY";
+      log("[WIFI] UDP send retry, no ACK within timeout.","warn");
+      setTimeout(function(){ dot.className="dot live"; txt.textContent="OK"; }, 1400);
+    }
+  }
+
+  /* ---------- i2c bus load ---------- */
+  function stepI2c(){
+    var load = 22 + Math.sin(Date.now()/4000)*6 + rand(-2,2);
+    load = clamp(load, 8, 60);
+    document.getElementById("i2c-load").textContent = load.toFixed(0)+"%";
+    document.getElementById("i2c-fill").style.width = load+"%";
+  }
+
+  /* ---------- main tick ---------- */
+  var lastTs = performance.now();
+  function tick(){
+    var now = performance.now();
+    var dt = (now-lastTs)/1000;
+    lastTs = now;
+
+    stepSensors();
+    maybeStartMove();
+    stepMove(dt);
+    stepLoop();
+    stepUdp();
+    stepI2c();
+
+    setGauge("g-front","v-front", filtered.front);
+    setGauge("g-right","v-right", filtered.right);
+    setGauge("g-left","v-left", filtered.left);
+    var frontGauge = document.getElementById("g-front");
+    frontGauge.setAttribute("stroke", obstacleActive ? "#FF5C6C" : (filtered.front<100? "#F2B33D" : "#7DEAFF"));
+
+    drawChart();
+    drawDrive();
+    if(!tableWrap.hidden) fillTable();
+  }
+
+  resizeCanvas();
+  for(var i=0;i<HISTORY_MAX;i++){ history.push({front:620,right:480,left:510}); }
+  setInterval(tick, 200);
+  tick();
+})();
+</script>
+
+</body></html>

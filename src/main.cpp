@@ -1,29 +1,38 @@
 #include <Arduino.h>
 #include "sensor.h"
 #include "encoder.h"
-#include "udp.h"
 
 void setup()
 {
     Serial.begin(115200);
+
     encoder_setup();
     sensor_init();
-    udp_init();
+
+    Serial.println("Sensor initialized.");
 }
 
 void loop()
 {
     sensor_reading_t reading;
+
     sensor_read_all(&reading);
 
-    char msg[128];
-    snprintf(msg, sizeof(msg),
-             "front=%u right=%u left=%u mm | ticks L=%ld R=%ld | travel L=%.2f R=%.2f avg=%.2f cm",
-             reading.front_mm, reading.right_mm, reading.left_mm,
-             left_ticks, right_ticks,
-             LeftWheelTravel(), RightWheelTravel(), GetDistanceTraveled());
+    // Serial.printf(
+    //     "Front: %u mm | Right: %u mm | Left: %u mm\n",
+    //     reading.front_mm,
+    //     reading.right_mm,
+    //     reading.left_mm
+    // );
 
-    Serial.println(msg);
-    udp_send(msg);
+    Serial.printf(
+        "Left ticks: %ld | Right ticks: %ld | Left dist: %.2f cm | Right dist: %.2f cm | Avg speed: %.2f cm/s\n",
+        left_ticks,
+        right_ticks,
+        LeftWheelTravel(),
+        RightWheelTravel(),
+        GetAverageSpeed()
+    );
+
     delay(100);
 }
